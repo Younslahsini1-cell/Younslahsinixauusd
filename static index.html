@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Independent Live Signal Scanner</title>
+<style>
+:root{--bg:#06101c;--panel:#0d1b2d;--line:#203a55;--text:#eaf2fb;--muted:#91a6bc;--g:#39df91;--r:#ff6676;--y:#f1c85b}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(145deg,#050d17,#0b1929);color:var(--text);font-family:Arial,Tahoma,sans-serif}
+header{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:#06101cec;backdrop-filter:blur(10px);z-index:2}
+h1{font-size:21px;margin:0}.muted{color:var(--muted);font-size:12px}.wrap{max-width:1200px;margin:auto;padding:18px}
+.status{display:flex;gap:7px;align-items:center}.dot{width:8px;height:8px;border-radius:50%;background:var(--g)}
+.cards{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px}.card,.panel{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:15px}.value{font-size:22px;font-weight:700;margin-top:8px}.BUY{color:var(--g)}.SELL{color:var(--r)}.WAIT{color:var(--y)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.symbol{border:1px solid var(--line);border-radius:11px;padding:14px;margin-bottom:10px;background:#0a1727}.row{display:flex;justify-content:space-between;align-items:center;gap:10px}.signal{font-weight:bold;font-size:20px}.levels{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}.level{background:#081421;padding:10px;border-radius:8px}.level b{display:block;margin-top:5px}
+button{border:1px solid #315878;background:#112a42;color:#fff;border-radius:8px;padding:9px 12px;cursor:pointer}
+table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:9px;border-bottom:1px solid var(--line);text-align:right}
+.notice{margin-top:12px;padding:10px;border-right:3px solid var(--y);background:#17150d;color:#d8c889;font-size:12px}
+@media(max-width:800px){.cards{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}.wrap{padding:11px}.levels{grid-template-columns:1fr 1fr 1fr}}
+</style></head>
+<body>
+<header><div><h1>Independent Live Signal Scanner</h1><div class=muted>XAUUSD + EURUSD • بدون MT5 / VPS / تنفيذ صفقات</div></div>
+<div class=status><span class=dot></span><span id=status>جاري الاتصال</span></div></header>
+<div class=wrap>
+<div class=cards>
+<div class=card><div class=muted>XAUUSD</div><div id=xau class=value>—</div></div>
+<div class=card><div class=muted>EURUSD</div><div id=eur class=value>—</div></div>
+<div class=card><div class=muted>مصدر البيانات</div><div class=value style="font-size:16px">API</div></div>
+<div class=card><div class=muted>الإشارات</div><div id=count class=value>0</div></div>
+<div class=card><div class=muted>آخر فحص</div><div id=time class=value style="font-size:16px">—</div></div>
+</div>
+<div class=grid><section class=panel><h2>Live Signals</h2><div id=signals></div>
+<div class=notice>BUY/SELL إشارات بحثية وليست توصية مالية. لا يتم إرسال أي أمر إلى أي منصة.</div></section>
+<section class=panel><h2>Signal Journal</h2><table><thead><tr><th>الوقت</th><th>الأصل</th><th>الإشارة</th><th>Entry</th><th>SL</th><th>TP</th></tr></thead><tbody id=journal></tbody></table></section></div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+function n(x){return x==null?'—':Number(x).toFixed(5)}
+async function load(){
+ try{
+  const r=await fetch('/api/signals');const ds=await r.json();
+  let valid=0;
+  $('signals').innerHTML=ds.map(d=>{
+   if(!d.error)valid++;
+   const cl=d.signal;
+   return `<div class=symbol><div class=row><b>${d.symbol}</b><span class="signal ${cl}">${cl}</span></div>
+   ${d.error?`<p class=muted>${d.error}</p>`:`<div class=muted>H4: ${d.h4} • H1: ${d.h1} • M15: ${d.m15}</div>
+   <div class=levels><div class=level>Entry<b>${n(d.entry)}</b></div><div class=level>SL<b>${n(d.sl)}</b></div><div class=level>TP<b>${n(d.tp)}</b></div></div>`}</div>`
+  }).join('');
+  $('xau').textContent=(ds.find(x=>x.symbol==='XAU/USD')||{}).signal||'—';
+  $('eur').textContent=(ds.find(x=>x.symbol==='EUR/USD')||{}).signal||'—';
+  $('count').textContent=valid;$('time').textContent=new Date().toLocaleTimeString();
+  $('status').textContent='متصل';
+  const j=await (await fetch('/api/journal')).json();
+  $('journal').innerHTML=j.map(x=>`<tr><td>${x.timestamp}</td><td>${x.symbol}</td><td class=${x.signal}>${x.signal}</td><td>${n(x.entry)}</td><td>${n(x.sl)}</td><td>${n(x.tp)}</td></tr>`).join('');
+ }catch(e){$('status').textContent='بانتظار ربط API'}
+}
+load();setInterval(load,60000);
+</script></body></html>

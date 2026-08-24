@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: live-signal-scanner
+    runtime: python
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: gunicorn --chdir backend app:app
+    healthCheckPath: /api/health
+    envVars:
+      - key: TWELVE_DATA_API_KEY
+        sync: false
+      - key: NTFY_TOPIC
+        sync: false
